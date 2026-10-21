@@ -1,13 +1,19 @@
 import { describe, it, expect } from 'vitest';
-import { sortByNewest, formatPostedDate } from './jobs';
+import { filterJobs, sortByNewest, formatPostedDate } from './jobs';
 import type { Job } from '../types/job';
 
-function makeJob(slug: string, postedDate: string): Job {
+/** Creates a job fixture with overridable department and location values. */
+function makeJob(
+    slug: string,
+    postedDate: string,
+    department = 'Technology',
+    location = 'Remote',
+): Job {
     return {
         slug,
         title: `Role ${slug}`,
-        department: 'Technology',
-        location: 'Remote',
+        department,
+        location,
         type: 'Full-time',
         remote: true,
         postedDate,
@@ -30,6 +36,40 @@ describe('sortByNewest', () => {
         const original = jobs.map((j) => j.slug);
         sortByNewest(jobs);
         expect(jobs.map((j) => j.slug)).toEqual(original);
+    });
+});
+
+describe('filterJobs', () => {
+    const jobs = [
+        makeJob('finance-woodinville', '2027-01-01', 'Finance', 'Woodinville, WA, USA'),
+        makeJob('finance-helsinki', '2027-01-02', 'Finance', 'Helsinki, Finland'),
+        makeJob('technology-remote', '2027-01-03', 'Technology', 'Remote (US & Canada)'),
+    ];
+
+    it('filters by department or location independently', () => {
+        expect(filterJobs(jobs, 'Finance', '').map((job) => job.slug)).toEqual([
+            'finance-woodinville',
+            'finance-helsinki',
+        ]);
+        expect(filterJobs(jobs, '', 'Helsinki, Finland').map((job) => job.slug)).toEqual([
+            'finance-helsinki',
+        ]);
+    });
+
+    it('combines department and location filters with AND', () => {
+        expect(
+            filterJobs(jobs, 'Finance', 'Woodinville, WA, USA').map((job) => job.slug),
+        ).toEqual(['finance-woodinville']);
+    });
+
+    it('returns every job when no filters are selected', () => {
+        expect(filterJobs(jobs, '', '').map((job) => job.slug)).toEqual(
+            jobs.map((job) => job.slug),
+        );
+    });
+
+    it('returns no jobs when the selected filters have no match', () => {
+        expect(filterJobs(jobs, 'Technology', 'Helsinki, Finland')).toEqual([]);
     });
 });
 

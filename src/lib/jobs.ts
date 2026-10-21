@@ -30,3 +30,16 @@ export function formatPostedDate(iso: string): string {
         timeZone: 'UTC',
     });
 }
+
+/** Return jobs matching the selected department and location filters. */
+export function filterJobs(
+    jobs: Job[],
+    department: string,
+    location: string,
+): Job[] {
+    return jobs.filter(
+        (job) =>
+            (!department || job.department === department) &&
+            (!location || job.location === location),
+    );
+}

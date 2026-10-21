@@ -27,6 +27,80 @@ test.describe('Open roles listing', () => {
         await expect(page.getByTestId('apply-form')).toBeVisible();
     });
 
+    test('filters roles by department', async ({ page }) => {
+        await page.goto('/');
+        await page.getByTestId('department-filter').selectOption({ label: 'Finance' });
+
+        const visibleCards = page.locator('[data-testid="role-card"]:visible');
+        await expect(visibleCards).toHaveCount(2);
+        await expect(
+            visibleCards.getByRole('heading', { name: 'Financial Analyst', exact: true }),
+        ).toBeVisible();
+        await expect(
+            visibleCards.getByRole('heading', {
+                name: 'Financial Reconciliation Specialist',
+                exact: true,
+            }),
+        ).toBeVisible();
+        await expect(
+            page.getByRole('heading', { name: 'Procurement Analyst', exact: true }),
+        ).not.toBeVisible();
+    });
+
+    test('filters roles by location', async ({ page }) => {
+        await page.goto('/');
+        await page.getByTestId('location-filter').selectOption({
+            label: 'Remote (US & Canada)',
+        });
+
+        const visibleCards = page.locator('[data-testid="role-card"]:visible');
+        await expect(visibleCards).toHaveCount(2);
+        await expect(
+            visibleCards.getByRole('heading', { name: 'Senior Frontend Engineer', exact: true }),
+        ).toBeVisible();
+        await expect(
+            visibleCards.getByRole('heading', { name: 'Data Platform Engineer', exact: true }),
+        ).toBeVisible();
+    });
+
+    test('combines department and location filters', async ({ page }) => {
+        await page.goto('/');
+        await page.getByTestId('department-filter').selectOption({ label: 'Finance' });
+        await page.getByTestId('location-filter').selectOption({
+            label: 'Woodinville, WA, USA',
+        });
+
+        const visibleCards = page.locator('[data-testid="role-card"]:visible');
+        await expect(visibleCards).toHaveCount(1);
+        await expect(
+            visibleCards.getByRole('heading', { name: 'Financial Analyst', exact: true }),
+        ).toBeVisible();
+        await expect(page.getByTestId('filter-empty-state')).toBeHidden();
+    });
+
+    test('shows an empty state for no matches and resets filters', async ({ page }) => {
+        await page.goto('/');
+        await page.getByTestId('department-filter').selectOption({ label: 'Finance' });
+        await page.getByTestId('location-filter').selectOption({
+            label: 'London, United Kingdom',
+        });
+
+        await expect(page.locator('[data-testid="role-card"]:visible')).toHaveCount(0);
+        await expect(page.getByTestId('filter-empty-state')).toBeVisible();
+        await expect(page.getByTestId('empty-state-text')).toHaveText(
+            'No roles match your selected filters.',
+        );
+
+        await page.getByTestId('role-filter-reset').click();
+
+        await expect(page.getByTestId('department-filter')).toHaveValue('');
+        await expect(page.getByTestId('location-filter')).toHaveValue('');
+        await expect(page.getByTestId('filter-empty-state')).toBeHidden();
+        await expect(page.locator('[data-testid="role-card"]:visible')).toHaveCount(
+            expectedRoleCount,
+        );
+    });
+
     for (const { title, location } of [
         { title: 'Senior Frontend Engineer', location: 'Remote (US & Canada)' },
         { title: 'Financial Analyst', location: 'Woodinville, WA, USA' },
